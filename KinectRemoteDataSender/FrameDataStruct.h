@@ -23,7 +23,7 @@ using KinectFramesData = struct KinectFramesData
     unsigned int colorBufferSize = 0;
     RGBQUAD * colorBuffer        = nullptr;
     ColorImageFormat imageFormat = ColorImageFormat_None;
-    char * rgbMapDepthBuffer     = nullptr;
+    unsigned char * rgbMapDepthBuffer = nullptr;
   
     ColorSpacePoint * depthMappedToColorPoints = nullptr;
 
@@ -56,7 +56,7 @@ inline bool KinectFramesData::CopyDepthBuffer() const
 {
     if (depthBuffer != nullptr)
     {
-        memcpy(depthBufferSavedData, depthBuffer, DEPTH_FRAME_SIZE);
+        memcpy(depthBufferSavedData, depthBuffer, DEPTH_FRAME_SIZE * sizeof (unsigned short));
         return true;
     }
     return false;
@@ -75,9 +75,12 @@ inline RGBQUAD** ::KinectFramesData::GetPointerToColorBuffer()
 inline KinectFramesData::KinectFramesData()
 {
     colorBufferRGBX          = new RGBQUAD[COLOR_FRAME_SIZE];
-    rgbMapDepthBuffer        = new char[BYTES_PER_PIXEL * DEPTH_FRAME_SIZE];
+    rgbMapDepthBuffer        = new unsigned char[BYTES_PER_PIXEL * DEPTH_FRAME_SIZE];
+    memset(rgbMapDepthBuffer, 0, BYTES_PER_PIXEL * DEPTH_FRAME_SIZE);
+
     depthMappedToColorPoints = new ColorSpacePoint[DEPTH_FRAME_SIZE];
     depthBufferSavedData     = new unsigned short[DEPTH_FRAME_SIZE];
+    memset(depthBufferSavedData, 0, DEPTH_FRAME_SIZE * 2);
 }
 
 inline KinectFramesData::~KinectFramesData()
