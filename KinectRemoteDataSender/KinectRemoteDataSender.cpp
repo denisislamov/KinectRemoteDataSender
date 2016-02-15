@@ -338,6 +338,14 @@ void UdpDataSender(std::atomic<bool> & isRunning)
         logMutex.unlock();
         return;
     }
+    
+	int sizeBuf = 0;
+	if (setsockopt(socketVal, SOL_SOCKET, SO_SNDBUF, (char *)&sizeBuf, sizeof(sizeBuf)) == SOCKET_ERROR)
+	{
+		std::cout << "ERROR: UdpDataSender socket() failed with error code : " << WSAGetLastError() << std::endl;
+		logMutex.unlock();
+		return;
+	}
 
     //setup address structure
     memset(reinterpret_cast<char *>(&socketAddressOther), 0, sizeof(socketAddressOther));
@@ -359,9 +367,6 @@ void UdpDataSender(std::atomic<bool> & isRunning)
     {
         if (getDepthData && getColorData)
         {
-            handle = GetStdHandle(STD_OUTPUT_HANDLE);
-            SetConsoleTextAttribute(handle, FOREGROUND_BLUE);
-
             for (auto i = 0; i < 8; ++i)
             {
                 result[0] = i;
@@ -374,6 +379,7 @@ void UdpDataSender(std::atomic<bool> & isRunning)
                     std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
                 }
             }
+
             for (auto i = 8; i < 24; ++i)
             {
                 result[0] = i;
