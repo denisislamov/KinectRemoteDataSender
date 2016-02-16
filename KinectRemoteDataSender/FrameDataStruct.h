@@ -10,11 +10,12 @@ using KinectFramesData = struct KinectFramesData
     unsigned int depthBufferSize = 0;
     unsigned short * depthBuffer = nullptr;
     unsigned short * depthBufferSavedData = nullptr;
+    unsigned short * shortcutDepthBuffer  = nullptr;
 
     inline unsigned int* GetPointerToDepthBufferSize();
     inline unsigned short** GetPointerToDepthBuffer();
     inline bool CopyDepthBuffer() const;
-
+  
     // Color frame data
     static const int COLOR_FRAME_WIDTH  = 1920;
     static const int COLOR_FRAME_HEIGHT = 1080;
@@ -24,18 +25,20 @@ using KinectFramesData = struct KinectFramesData
     RGBQUAD * colorBuffer        = nullptr;
     ColorImageFormat imageFormat = ColorImageFormat_None;
     unsigned char * rgbMapDepthBuffer = nullptr;
-  
+    
+    unsigned char * shortcutRgbMapDepthBuffer = nullptr;
+
     ColorSpacePoint * depthMappedToColorPoints = nullptr;
 
     inline unsigned int* GetPointerToColorBufferSize();
     inline RGBQUAD** GetPointerToColorBuffer();
-
+  
     RGBQUAD * colorBufferRGBX = nullptr;;
 
     // Body index frame data
     unsigned int bodyIndexBufferSize = 0;
     unsigned char * bodyIndexBuffer  = nullptr;
-
+    
     static const int BYTES_PER_PIXEL = 4;
 
     KinectFramesData();
@@ -78,9 +81,15 @@ inline KinectFramesData::KinectFramesData()
     rgbMapDepthBuffer        = new unsigned char[BYTES_PER_PIXEL * DEPTH_FRAME_SIZE];
     memset(rgbMapDepthBuffer, 0, BYTES_PER_PIXEL * DEPTH_FRAME_SIZE);
 
+    shortcutRgbMapDepthBuffer = new unsigned char[BYTES_PER_PIXEL * DEPTH_FRAME_SIZE / 4];
+    memset(shortcutRgbMapDepthBuffer, 0, BYTES_PER_PIXEL * DEPTH_FRAME_SIZE / 4);
+
     depthMappedToColorPoints = new ColorSpacePoint[DEPTH_FRAME_SIZE];
     depthBufferSavedData     = new unsigned short[DEPTH_FRAME_SIZE];
     memset(depthBufferSavedData, 0, DEPTH_FRAME_SIZE * 2);
+
+    shortcutDepthBuffer = new unsigned short[DEPTH_FRAME_SIZE / 4];
+    memset(shortcutDepthBuffer, 0, DEPTH_FRAME_SIZE / 2);
 }
 
 inline KinectFramesData::~KinectFramesData()
@@ -97,6 +106,12 @@ inline KinectFramesData::~KinectFramesData()
         rgbMapDepthBuffer = nullptr;
     }
 
+    if (shortcutRgbMapDepthBuffer)
+    {
+        delete[] shortcutRgbMapDepthBuffer;
+        shortcutRgbMapDepthBuffer = nullptr;
+    }
+
     if (depthMappedToColorPoints)
     {
         delete[] depthMappedToColorPoints;
@@ -107,6 +122,12 @@ inline KinectFramesData::~KinectFramesData()
     {
         delete[] depthBufferSavedData;
         depthBufferSavedData = nullptr;
+    }
+
+    if (shortcutDepthBuffer)
+    {
+        delete[] shortcutDepthBuffer;
+        shortcutDepthBuffer = nullptr;
     }
 }
 

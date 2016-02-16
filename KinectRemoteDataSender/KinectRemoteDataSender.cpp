@@ -30,7 +30,7 @@ bool getDepthData = false;
 bool getColorData = false;
 
 std::string ip("127.0.0.1");
-int port = 7777;
+int port = 7001;
 
 int main(int argc, char *argv[])
 {
@@ -82,27 +82,84 @@ void ProcessFrame(ICoordinateMapper * coordinateMapper)
         if (Succeeded(result))
         {
             int colorIndex = 0;
-            for (int depthIndex = 0; depthIndex < KinectFramesData::DEPTH_FRAME_SIZE; ++depthIndex)
+            int shortcutIndex = 0;
+
+            for (int y = 0; y < KinectFramesData::DEPTH_FRAME_HEIGHT; y++)
             {
-                auto point = kinectFramesDataRef->depthMappedToColorPoints[depthIndex];
-                int colorX = static_cast<int>(std::floor(point.X + 0.5f));
-                int colorY = static_cast<int>(std::floor(point.Y + 0.5f));
-
-                int depthPixel = depthIndex * KinectFramesData::BYTES_PER_PIXEL;
-
-                if ((colorX >= 0) && (colorX < KinectFramesData::COLOR_FRAME_WIDTH) &&
-                    (colorY >= 0) && (colorY < KinectFramesData::COLOR_FRAME_HEIGHT))
+                for (int x = 0; x < KinectFramesData::DEPTH_FRAME_WIDTH; x++)
                 {
-                    int colorImageIndex = ((KinectFramesData::COLOR_FRAME_WIDTH * colorY) + colorX);
-                    
-                    kinectFramesDataRef->rgbMapDepthBuffer[depthPixel]     = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbRed;
-                    kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 1] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbGreen;
-                    kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 2] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbBlue;
-                }
+                    int depthIndex = y * KinectFramesData::DEPTH_FRAME_WIDTH + x;
 
-                kinectFramesDataRef->rgbMapDepthBuffer[4 * depthIndex + 3] = kinectFramesDataRef->bodyIndexBuffer[depthIndex] == 0 ?
-                                                                             kinectFramesDataRef->bodyIndexBuffer[depthIndex] : 0;
+                    auto point = kinectFramesDataRef->depthMappedToColorPoints[depthIndex];
+                    int colorX = static_cast<int>(std::floor(point.X + 0.5f));
+                    int colorY = static_cast<int>(std::floor(point.Y + 0.5f));
+
+                    int depthPixel = depthIndex * KinectFramesData::BYTES_PER_PIXEL;
+
+                    if ((colorX >= 0) && (colorX < KinectFramesData::COLOR_FRAME_WIDTH) &&
+                        (colorY >= 0) && (colorY < KinectFramesData::COLOR_FRAME_HEIGHT))
+                    {
+                        int colorImageIndex = ((KinectFramesData::COLOR_FRAME_WIDTH * colorY) + colorX);
+                                
+                        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel]     = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbRed;
+                        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 1] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbGreen;
+                        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 2] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbBlue;
+                    }
+                    
+                    kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 3] = kinectFramesDataRef->bodyIndexBuffer[depthIndex];
+
+                    
+                    if (y % 2 == 0 && x % 2 == 0)
+                    {
+                        shortcutIndex = y / 2 * (KinectFramesData::DEPTH_FRAME_WIDTH / 2) + x / 2;
+                        int shortcutDepthPixel = 4 * shortcutIndex;
+
+                        kinectFramesDataRef->shortcutDepthBuffer[shortcutIndex] = kinectFramesDataRef->depthBufferSavedData[depthIndex];
+
+                        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel];
+                        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 1] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 1];
+                        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 2] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 2];
+                        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 3] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 3];
+                    }
+                }
             }
+
+            //for (int depthIndex = 0; depthIndex < KinectFramesData::DEPTH_FRAME_SIZE; ++depthIndex)
+            //{
+            //    auto point = kinectFramesDataRef->depthMappedToColorPoints[depthIndex];
+            //    int colorX = static_cast<int>(std::floor(point.X + 0.5f));
+            //    int colorY = static_cast<int>(std::floor(point.Y + 0.5f));
+
+            //    int depthPixel = depthIndex * KinectFramesData::BYTES_PER_PIXEL;
+
+            //    if ((colorX >= 0) && (colorX < KinectFramesData::COLOR_FRAME_WIDTH) &&
+            //        (colorY >= 0) && (colorY < KinectFramesData::COLOR_FRAME_HEIGHT))
+            //    {
+            //        int colorImageIndex = ((KinectFramesData::COLOR_FRAME_WIDTH * colorY) + colorX);
+            //        
+            //        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel]     = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbRed;
+            //        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 1] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbGreen;
+            //        kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 2] = kinectFramesDataRef->colorBuffer[colorImageIndex].rgbBlue;
+            //    }
+
+            //    kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 3] = kinectFramesDataRef->bodyIndexBuffer[depthIndex] == 0 ?
+            //                                                             kinectFramesDataRef->bodyIndexBuffer[depthIndex] : 0;
+            //    
+            //    // shortcuts arrays
+            //    if (depthIndex % 4 == 0)
+            //    {
+            //        int shortcutDepthPixel = 4 * shortcutIndex;
+            //        
+            //        kinectFramesDataRef->shortcutDepthBuffer[shortcutIndex] = kinectFramesDataRef->depthBufferSavedData[depthIndex];
+
+            //        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel]     = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel];
+            //        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 1] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 1];
+            //        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 2] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 2];
+            //        kinectFramesDataRef->shortcutRgbMapDepthBuffer[shortcutDepthPixel + 3] = kinectFramesDataRef->rgbMapDepthBuffer[depthPixel + 3];
+            //        shortcutIndex++;
+            //    }
+
+            //}
             getColorData = true;
         }
     }
@@ -360,40 +417,113 @@ void UdpDataSender(std::atomic<bool> & isRunning)
                                       KinectFramesData::DEPTH_FRAME_SIZE];
     auto result = new char[MAX_PACKET_SIZE + 2];
 
+
+    struct sockaddr_in serverSocketAdress;
+    int serverSocketVal, serverSocketLenght = sizeof(serverSocketAdress);
+    WSADATA serverWsData;
+
+    std::cout << "Initialising server winsock" << std::endl;
+    if (WSAStartup(MAKEWORD(2, 2), &serverWsData) != 0)
+    {
+        std::cout << "ERROR: UdpDataSender server error Code: " << WSAGetLastError() << std::endl;
+        logMutex.unlock();
+        return;
+    }
+    std::cout << "Initialised" << std::endl;
+
+    serverSocketAdress.sin_family = AF_INET;
+    serverSocketAdress.sin_addr.s_addr = INADDR_ANY;
+    serverSocketAdress.sin_port = htons(7000);
+
+    if ((serverSocketVal = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
+    {
+        std::cout << "ERROR: UdpDataSender server socket() failed with error code : " << WSAGetLastError() << std::endl;
+        logMutex.unlock();
+        return;
+    }
+    
+    if (bind(serverSocketVal, reinterpret_cast<struct sockaddr *>(&serverSocketAdress),
+        sizeof(serverSocketAdress)) == SOCKET_ERROR)
+    {
+        std::cout << "ERROR: Server bind failed with error code : " << WSAGetLastError() << std::endl;
+        logMutex.unlock();
+        return;
+    }
+
+    std::cout << "Socket created" << std::endl;
+
     logMutex.unlock();
 
     void * handle;
+    int receiverLength;
+    char * socketBuffer = new char[1];
+
     while (isRunning)
     {
-        if (getDepthData && getColorData)
+        if ((receiverLength = recvfrom(serverSocketVal, reinterpret_cast<char *> (socketBuffer), 1, 0, reinterpret_cast<struct sockaddr *>(&serverSocketAdress), &serverSocketLenght)) == SOCKET_ERROR)
         {
-            for (auto i = 0; i < 8; ++i)
+            continue;
+        }
+
+        if (*socketBuffer != 0)  // Server ready to read
+        {
+            if (getDepthData && getColorData)
             {
-                result[0] = i;
-                result[1] = i + 10;
-                int offset = (MAX_PACKET_SIZE * i) / sizeof (unsigned short);
-                memcpy(result + 2, kinectFramesDataRef->depthBufferSavedData + offset, MAX_PACKET_SIZE);
-                
-                if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
+                /*for (auto i = 0; i < 8; ++i)
                 {
-                    std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
+                    result[0] = i;
+                    result[1] = i + 10;
+                    int offset = (MAX_PACKET_SIZE * i) / sizeof(unsigned short);
+                    memcpy(result + 2, kinectFramesDataRef->depthBufferSavedData + offset, MAX_PACKET_SIZE);
+
+                    if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
+                    {
+                        std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
+                    }
                 }
+
+                for (auto i = 8; i < 24; ++i)
+                {
+                    result[0] = i;
+                    result[1] = i + 10;
+                    memcpy(result + 2, kinectFramesDataRef->rgbMapDepthBuffer + MAX_PACKET_SIZE * (i - 8), MAX_PACKET_SIZE);
+
+                    if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
+                    {
+                        std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
+                    }
+                }*/
+
+                for (auto i = 0; i < 2; ++i)
+                {
+                    result[0] = i;
+                    result[1] = i + 10;
+                    int offset = (MAX_PACKET_SIZE * i) / sizeof(unsigned short);
+                    memcpy(result + 2, kinectFramesDataRef->shortcutDepthBuffer + offset, MAX_PACKET_SIZE);
+
+                    if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
+                    {
+                        std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
+                    }
+                }
+
+                for (auto i = 2; i < 6; ++i)
+                {
+                    result[0] = i;
+                    result[1] = i + 10;
+                    memcpy(result + 2, kinectFramesDataRef->shortcutRgbMapDepthBuffer + MAX_PACKET_SIZE * (i - 2), MAX_PACKET_SIZE);
+
+                    if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
+                    {
+                        std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
+                    }
+                }
+
+                getDepthData = false;
+                getColorData = false;
             }
 
-            for (auto i = 8; i < 24; ++i)
-            {
-                result[0] = i;
-                result[1] = i + 10;
-                memcpy(result + 2, kinectFramesDataRef->rgbMapDepthBuffer + MAX_PACKET_SIZE * (i - 8), MAX_PACKET_SIZE);
-
-                if (sendto(socketVal, result, MAX_PACKET_SIZE + 2, 0, reinterpret_cast<struct sockaddr *>(&socketAddressOther), socketLenght) == SOCKET_ERROR)
-                {
-                    std::cout << "ERROR: UdpDataSender sendto() failed with error code : " << WSAGetLastError() << std::endl;;
-                }
-            }
-
-            getDepthData = false;
-            getColorData = false;
+            *socketBuffer = 0;
         }
     }
 
